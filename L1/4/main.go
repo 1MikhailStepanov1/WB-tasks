@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"math/rand"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
 	"time"
 )
 
@@ -23,7 +26,6 @@ func work(id int, input <-chan string, wg *sync.WaitGroup) {
 	for data := range input {
 		fmt.Printf("Worker %d, data: %s\n", id, data)
 	}
-
 }
 
 func main() {
@@ -41,8 +43,16 @@ func main() {
 		go work(i, input, wg)
 	}
 
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT)
+
 	for {
-		input <- generateRandomString(rand.Intn(15))
-		time.Sleep(time.Millisecond * 100)
+		select {
+		case <-quit:
+			return
+		default:
+			input <- generateRandomString(rand.Intn(15))
+			time.Sleep(time.Millisecond * 100)
+		}
 	}
 }
