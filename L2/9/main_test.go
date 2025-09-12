@@ -91,7 +91,6 @@ func TestUnpack(t *testing.T) {
 			expected: "",
 			wantErr:  true,
 		},
-
 		{
 			name:     "unicode characters",
 			input:    "а2б3",

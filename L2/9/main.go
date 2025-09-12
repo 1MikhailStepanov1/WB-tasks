@@ -16,7 +16,7 @@ var (
 	ErrNoSymbolsToUnpack  = errors.New("string doesn't contain any symbols to unpack")
 )
 
-func unpack(input string) (string, error) {
+func unpack(input string) (string, error) { //nolint:cyclop
 	if input == "" {
 		return "", nil
 	}
