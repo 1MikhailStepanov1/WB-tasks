@@ -7,43 +7,68 @@ import (
 	"unicode"
 )
 
+var (
+	ErrShieldOnlyNumbers  = errors.New("only numbers can be shielded")
+	ErrDigitWithoutLetter = errors.New("digit cannot be first character without letter")
+	ErrZeroNumber         = errors.New("can't use 0 number")
+	ErrInvalidSequence    = errors.New("invalid character sequence")
+	ErrUnclosedShield     = errors.New("unclosed shielded symbol")
+	ErrNoSymbolsToUnpack  = errors.New("string doesn't contain any symbols to unpack")
+)
+
 func unpack(input string) (string, error) {
+	if input == "" {
+		return "", nil
+	}
+
 	inputRunes := []rune(input)
 	result := make([]rune, 0)
 	isShielded := false
 
-	for i := 0; i < len(inputRunes); i++ {
-		if unicode.IsLetter(inputRunes[i]) {
-			result = append(result, inputRunes[i])
-		} else if unicode.IsDigit(inputRunes[i]) && len(result) > 0 {
-			if inputRunes[i] == '0' {
-				return "", errors.New("can't use 0 number")
-			}
-			if isShielded {
+	for i := range inputRunes {
+		current := inputRunes[i]
+
+		switch {
+		case isShielded:
+			if current != '\\' {
+				result = append(result, current)
 				isShielded = false
-				result = append(result, inputRunes[i])
 			} else {
-				lastLetter := result[len(result)-1]
-				for j := 0; j < int(inputRunes[i]-'0')-1; j++ {
-					result = append(result, lastLetter)
-				}
+				return "", ErrShieldOnlyNumbers
 			}
-		} else if inputRunes[i] == '\\' {
-			if isShielded {
-				return "", errors.New("can't use \\ character")
-			} else {
-				isShielded = true
+		case unicode.IsLetter(current):
+			result = append(result, current)
+
+		case current == '\\':
+			isShielded = true
+
+		case unicode.IsDigit(current):
+			if len(result) == 0 {
+				return "", ErrDigitWithoutLetter
 			}
-		} else {
-			return "", errors.New("invalid character sequence")
+			if current == '0' {
+				return "", ErrZeroNumber
+			}
+
+			lastLetter := result[len(result)-1]
+			count := int(current-'0') - 1
+			for range count {
+				result = append(result, lastLetter)
+			}
+
+		default:
+			return "", ErrInvalidSequence
 		}
 	}
 
-	if len(result) == 0 && len(input) > 0 {
-		return "", errors.New("string doesn't contains any symbols to unpack")
-	} else if isShielded {
-		return "", errors.New("unclosed shielded symbol")
+	if isShielded {
+		return "", ErrUnclosedShield
 	}
+
+	if len(result) == 0 {
+		return "", ErrNoSymbolsToUnpack
+	}
+
 	return string(result), nil
 }
 
@@ -55,8 +80,8 @@ func main() {
 	}
 	result, err := unpack(input)
 	if err != nil {
-		fmt.Println("Error:", err)
+		fmt.Println("Error:", err) //nolint:forbidigo
 		os.Exit(1)
 	}
-	fmt.Println(result)
+	fmt.Println(result) //nolint:forbidigo
 }
